@@ -1,0 +1,7 @@
+MO_HOMEPAGE = "https://mushroomobserver.org"
+OBSERVATIONS_CSV = "observations.csv"
+IMAGES_CSV = "images.csv"
+NAMES_CSV = "names.csv"
+NAME_DESCRIPTIONS_CSV = "name_descriptions.csv"
+LOCATIONS_CSV = "locations.csv"
+IMAGES_OBSERVATIONS_CSV = "images_observations.csv"
