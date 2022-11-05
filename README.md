@@ -3,7 +3,7 @@
 All analyses/models developed here are based on the data uploaded to the [Mushroom Observer](https://mushroomobserver.org/).
 
 ## Exploratory Data Analysis
-- EDA of tabular data.
+- [EDA of tabular data](https://github.com/celestinoalan/mushroom_observer/blob/main/notebooks/eda_csv-alan-01.ipynb).
 
 ## Ideas
 ### Optimal Vote Cache
