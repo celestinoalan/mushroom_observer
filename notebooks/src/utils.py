@@ -3,10 +3,12 @@ from pandas import DataFrame, Series
 import pandas as pd
 from io import StringIO
 from warnings import warn
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from IPython.display import display
+import numpy as np
 
-from .constants import MO_USER_AGENT, MO_HOMEPAGE, NAMES_CSV, OBSERVATIONS_CSV, IMAGES_CSV, NAME_DESCRIPTIONS_CSV, LOCATIONS_CSV, IMAGES_OBSERVATIONS_CSV
+from .constants import MO_USER_AGENT, MO_HOMEPAGE, NAMES_CSV, OBSERVATIONS_CSV, IMAGES_CSV, NAME_DESCRIPTIONS_CSV,\
+    LOCATIONS_CSV, IMAGES_OBSERVATIONS_CSV
 
 
 def _load_from_mo2df(url: str) -> DataFrame:
@@ -64,8 +66,8 @@ def get_unique_values_and_counts(df: DataFrame, columns: List[str]):
         display(counts_df)
 
 
-# -------------------------------------------------------------------------------------------------------------------------
-# See https://stackoverflow.com/questions/4681737/how-to-calculate-the-area-of-a-polygon-on-the-earths-surface-using-python
+# ----------------------------------------------------------------------------------------------------------------------
+# https://stackoverflow.com/questions/4681737/how-to-calculate-the-area-of-a-polygon-on-the-earths-surface-using-python
 def _reproject(latitude: List[float], longitude: List[float]) -> Tuple[List[float], List[float]]:
     """Returns the x & y coordinates in meters using a sinusoidal projection"""
     from math import pi, cos, radians
@@ -85,10 +87,33 @@ def area_of_polygon(x: List[float], y: List[float]) -> float:
     for i in range(-1, len(x)-1):
         area += x[i] * (y[i+1] - y[i-1])
     return abs(area) / 2.0
-# -------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 def row2bounding_box(row: Series) -> Tuple[List[float], List[float]]:
     x = [row["east"], row["east"], row["west"], row["west"]]
     y = [row["north"], row["south"], row["south"], row["north"]]
     return x, y
+
+
+def get_id2preferred_id(names_df: DataFrame, include_deprecated: bool = False) -> Dict[int, int]:
+    id2preferred_id = {}
+    for _, df in names_df.groupby("synonym_id"):
+        mask = df.deprecated == 0
+        preferred_id = df[mask]["id"].min()
+        for id_ in df["id"].values:
+            if include_deprecated:
+                if preferred_id is np.nan:
+                    id2preferred_id[id_] = df["id"].min()
+                else:
+                    id2preferred_id[id_] = preferred_id
+            else:
+                id2preferred_id[id_] = preferred_id
+    return id2preferred_id
+
+
+def get_names_pref_df(names_df: DataFrame) -> DataFrame:
+    names_pref_df = names_df.copy()
+    id2preferred_id = get_id2preferred_id(names_df=names_df, include_deprecated=True)
+    names_pref_df["preferred_id"] = names_pref_df["id"].map(lambda id_: id2preferred_id.get(id_, id_))
+    return names_pref_df

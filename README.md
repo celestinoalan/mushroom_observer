@@ -18,6 +18,12 @@ pip install -r requirements.txt
 ```
 
 ## Ideas
+
+### How to Obtain Labels for an Observation
+1. Consider all ranks together. Alternative: Use only one rank.
+2. Map all IDs to the smallest ID within a synonym group that is not deprecated.
+3. Should there be no non-deprecated ID within a synonym group, map all IDs from the group to the smallest deprecated ID within the group.
+
 ### Optimal Vote Cache
 - Use a sample of the peak around 2.5 as a holdout set, check balanced precision for different values of vote cache. Use tabular model for this experiment.
 
