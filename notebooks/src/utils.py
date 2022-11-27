@@ -3,9 +3,13 @@ from pandas import DataFrame, Series
 import pandas as pd
 from io import StringIO
 from warnings import warn
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union, Literal
 from IPython.display import display
 import numpy as np
+from pathlib import Path
+import asyncio
+import aiohttp
+import aiofiles
 
 from .constants import MO_USER_AGENT, MO_HOMEPAGE, NAMES_CSV, OBSERVATIONS_CSV, IMAGES_CSV, NAME_DESCRIPTIONS_CSV,\
     LOCATIONS_CSV, IMAGES_OBSERVATIONS_CSV
@@ -117,3 +121,32 @@ def get_names_pref_df(names_df: DataFrame) -> DataFrame:
     id2preferred_id = get_id2preferred_id(names_df=names_df, include_deprecated=True)
     names_pref_df["preferred_id"] = names_pref_df["id"].map(lambda id_: id2preferred_id.get(id_, id_))
     return names_pref_df
+
+# We need to open a new connection for each image. Maybe we can bring the downloading time down with async IO
+
+async def _fetch_and_save_image(
+    session: aiohttp.ClientSession, image_id: Literal[320, 640, 960, 1280], size: int, image_folder: Path
+):
+    # No header -> 403 permission denied.
+    headers = {'User-Agent': MO_USER_AGENT}
+    # I've seen some people streaming images to avoid interruptions. Should I do that, too?
+    async with session.get(f"https://mushroomobserver.org/images/{size}/{image_id}.jpg", headers=headers) as resp:
+        if resp.status == 200:
+            async with aiofiles.open(image_folder / f"{image_id}.jpg", mode="wb") as handle:
+                await handle.write(await resp.read())
+
+
+async def fetch_and_save_images(
+    image_ids: List[int], size: Literal[320, 640, 960, 1280], image_folder: Union[Path, str]
+):
+    if isinstance(image_folder, str):
+        image_folder = Path(image_folder)
+    # Creates folder if not already existent
+    image_folder.mkdir(parents=True, exist_ok=True)
+    tasks = []
+    async with aiohttp.ClientSession() as session:
+        for image_id in image_ids:
+            tasks.append(
+                _fetch_and_save_image(session=session, image_id=image_id, size=size, image_folder=image_folder)
+            )
+        return await asyncio.gather(*tasks, return_exceptions=True)
